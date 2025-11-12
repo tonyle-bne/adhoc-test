@@ -3,14 +3,16 @@ name: Deploy
 on:
   push:
     branches:
-      - 'feature'
+      - 'develop'
     paths:
-      - 'adhoc/*'
+      - 'packages/**'
+      - 'types/**'
+      - 'views/**'
+      - 'functions/**'
+      - 'procedures/**'
       - 'adhoc/statements/**'
       - 'adhoc/procedures/**'
-    paths-ignore:
-      - 'adhoc/statements/done/**'
-      - 'adhoc/procedures/done/**'  
+      - 'tables/**'
   pull_request:
     branches:
       - 'master'
