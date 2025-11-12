@@ -1,0 +1,9 @@
+BEGIN
+    EXECUTE IMMEDIATE 'SELECT SYSDATE FROM DUAL';
+
+EXCEPTION
+    WHEN OTHERS THEN
+        dbms_output.put_line(SQLERRM);
+
+END;
+/

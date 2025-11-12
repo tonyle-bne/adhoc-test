@@ -1,0 +1,3 @@
+insert into qv_reference_cd values ('TEST7','Test8', 'TESTGITHUB','Y',1, sysdate,user);
+insert into qv_reference_cd values ('TEST8','Test8', 'TESTGITHUB','Y',1, sysdate,user);
+commit;

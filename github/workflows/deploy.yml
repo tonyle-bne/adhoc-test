@@ -1,0 +1,92 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - 'feature'
+    paths:
+      - 'adhoc/*'
+      - 'adhoc/statements/**'
+      - 'adhoc/procedures/**'
+    paths-ignore:
+      - 'adhoc/statements/done/**'
+      - 'adhoc/procedures/done/**'  
+  pull_request:
+    branches:
+      - 'master'
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      force_environment:
+        description: "Force deploy to specific environment (use with caution)"
+        required: false
+        type: choice
+        options:
+          - "none"
+          - DEV
+          - QA
+          - INT
+          - PRD
+
+jobs: 
+  # Call the reusable workflow for generating changesets
+  generate-changeset:
+    uses: QUT-DBS/dxp-liquibase-changeset-builder/.github/workflows/generate-changeset.yml@v1
+
+  copy-shared-files:
+    needs: generate-changeset
+    uses: QUT-DBS/dxp-liquibase-changeset-builder/.github/workflows/copy-post-deploy.yml@v1
+    secrets:
+      WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
+
+  # Deploy to DEV automatically on develop branch
+  deploy-dev:
+    needs: copy-shared-files
+    if: github.ref == 'refs/heads/develop' || github.event.inputs.force_environment == 'DEV'
+    uses: QUT-DBS/dxp-liquibase-changeset-builder/.github/workflows/deploy-changeset.yml@v1
+    with:
+      environment: DEV
+    secrets:
+      DEV_DB_PASSWORD: ${{ secrets.QV_DEV_DB_PASSWORD }}
+      QA_DB_PASSWORD: ${{ secrets.QV_QA_DB_PASSWORD }}
+      INT_DB_PASSWORD: ${{ secrets.QV_INT_DB_PASSWORD }}
+      PRD_DB_PASSWORD: ${{ secrets.QV_PRD_DB_PASSWORD }}
+
+  # Deploy to QA - requires manual approval
+  deploy-qa:
+    needs: deploy-dev
+    if: github.ref == 'refs/heads/develop' || github.event.inputs.force_environment == 'QA'
+    uses: QUT-DBS/dxp-liquibase-changeset-builder/.github/workflows/deploy-changeset.yml@v1
+    with:
+      environment: QA
+    secrets:
+      DEV_DB_PASSWORD: ${{ secrets.QV_DEV_DB_PASSWORD }}
+      QA_DB_PASSWORD: ${{ secrets.QV_QA_DB_PASSWORD }}
+      INT_DB_PASSWORD: ${{ secrets.QV_INT_DB_PASSWORD }}
+      PRD_DB_PASSWORD: ${{ secrets.QV_PRD_DB_PASSWORD }}
+
+  # Deploy to INT - requires manual approval
+  deploy-int:
+    needs: deploy-qa
+    if: github.ref == 'refs/heads/develop' || github.event.inputs.force_environment == 'INT'
+    uses: QUT-DBS/dxp-liquibase-changeset-builder/.github/workflows/deploy-changeset.yml@v1
+    with:
+      environment: INT
+    secrets:
+      DEV_DB_PASSWORD: ${{ secrets.QV_DEV_DB_PASSWORD }}
+      QA_DB_PASSWORD: ${{ secrets.QV_QA_DB_PASSWORD }}
+      INT_DB_PASSWORD: ${{ secrets.QV_INT_DB_PASSWORD }}
+      PRD_DB_PASSWORD: ${{ secrets.QV_PRD_DB_PASSWORD }}
+
+  # Deploy to PRD - only on main branch merges, requires manual approval
+  deploy-prd:
+    needs: copy-shared-files
+    if: (github.event.pull_request.merged == true && github.base_ref == 'master') || github.event.inputs.force_environment == 'PRD'
+    uses: QUT-DBS/dxp-liquibase-changeset-builder/.github/workflows/deploy-changeset.yml@v1
+    with:
+      environment: PRD
+    secrets:
+      DEV_DB_PASSWORD: ${{ secrets.QV_DEV_DB_PASSWORD }}
+      QA_DB_PASSWORD: ${{ secrets.QV_QA_DB_PASSWORD }}
+      INT_DB_PASSWORD: ${{ secrets.QV_INT_DB_PASSWORD }}
+      PRD_DB_PASSWORD: ${{ secrets.QV_PRD_DB_PASSWORD }}
