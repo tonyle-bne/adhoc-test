@@ -3,19 +3,16 @@ name: Deploy
 on:
   push:
     branches:
-      - 'develop'
+      - 'feature'
     paths:
-      - 'packages/**'
-      - 'types/**'
-      - 'views/**'
-      - 'functions/**'
-      - 'procedures/**'
+      - 'adhoc/*'
       - 'adhoc/statements/**'
       - 'adhoc/procedures/**'
-      - 'tables/**'
+    paths-ignore:
+      - 'adhoc/**/done/**'
   pull_request:
     branches:
-      - 'master'
+      - 'main'
     types: [closed]
   workflow_dispatch:
     inputs:
